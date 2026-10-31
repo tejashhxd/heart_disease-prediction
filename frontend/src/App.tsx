@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 type FormValues = {
   age: number;
@@ -34,10 +34,21 @@ const initialValues: FormValues = {
 };
 
 function App() {
+  const [isDark, setIsDark] = useState(() => {
+    const savedTheme = localStorage.getItem("cardia-theme");
+    return savedTheme
+      ? savedTheme === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
   const [values, setValues] = useState<FormValues>(initialValues);
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = isDark ? "dark" : "light";
+    localStorage.setItem("cardia-theme", isDark ? "dark" : "light");
+  }, [isDark]);
 
   function update<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((current) => ({ ...current, [key]: value }));
@@ -115,7 +126,27 @@ function App() {
           </span>
           <span>cardia<span className="brand-period">.</span></span>
         </a>
-        <span className="topbar-note"><span className="live-dot" /> Private health check</span>
+        <div className="topbar-actions">
+          <span className="topbar-note"><span className="live-dot" /> Private health check</span>
+          <button
+            className="theme-toggle"
+            type="button"
+            aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
+            aria-pressed={isDark}
+            onClick={() => setIsDark((current) => !current)}
+          >
+            {isDark ? (
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M20.2 15.3A8.5 8.5 0 0 1 8.7 3.8 8.5 8.5 0 1 0 20.2 15.3Z" />
+              </svg>
+            )}
+          </button>
+        </div>
       </header>
 
       <section className="hero">
@@ -139,13 +170,13 @@ function App() {
             <svg viewBox="0 0 120 120" fill="none" aria-hidden="true">
               <path
                 d="M60 101S19 77 19 46a22 22 0 0 1 41-11 22 22 0 0 1 41 11c0 31-41 55-41 55Z"
-                fill="#F8FCF9"
-                stroke="#B5D9C6"
+                fill="var(--art-heart-fill)"
+                stroke="var(--art-heart-stroke)"
                 strokeWidth="2"
               />
               <path
                 d="M32 59h18l8-16 13 34 8-18h12"
-                stroke="#3B8062"
+                stroke="var(--green)"
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
