@@ -33,27 +33,29 @@ Requirements: Python 3.10+ and Node.js 20+.
 3. Open the local URL printed by Vite (normally http://localhost:5173).
 
 The Vite development server proxies `/api` and `/health` to the backend at
-`http://127.0.0.1:8000`. ## Deploy
+`http://127.0.0.1:8000`.
 
-Build the static frontend and install the API dependencies during your hosting
-platform's build step:
+## Deploy to Render
 
-```sh
-npm ci --prefix frontend
-npm run build --prefix frontend
-pip install -r requirements.txt
-```
+Create a Render **Web Service** with these settings:
 
-Start the app with:
+- **Runtime:** Python
+- **Build command:**
 
-```sh
-waitress-serve --listen=0.0.0.0:8000 api:app
-```
+  ```sh
+  npm ci --prefix frontend && npm run build --prefix frontend && pip install -r requirements.txt
+  ```
+
+- **Start command:**
+
+  ```sh
+  gunicorn api:app --bind 0.0.0.0:$PORT
+  ```
 
 The API serves the compiled frontend from `frontend/dist` when it is present.
-Configure the host to use `/health` as its health-check path and bind Waitress
-to the port required by your hosting platform. Provide Python 3.10 or later
-plus Node.js 20 or later for the build step.
+Set `/health` as the health-check path if configuring one. Use Python 3.10+
+and Node.js 20+ for the build step. For local development, continue to run
+`python api.py`; Gunicorn is for the Linux production deployment.
 
 ## Prediction API
 
