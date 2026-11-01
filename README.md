@@ -28,27 +28,68 @@ for an individual.
 - Serves the built frontend and prediction API from the same web service.
 - No application database or user accounts.
 
-## How predictions work
+## Machine-learning implementation
 
-1. The form collects age, sex, chest pain type, resting blood pressure,
-   cholesterol, fasting blood sugar, resting ECG, maximum heart rate,
-   exercise-induced angina, ST depression (`Oldpeak`), and ST slope.
-2. The frontend sends these values as JSON to `POST /api/predict`.
-3. Flask validates the values, converts categorical inputs into the model's
-   expected one-hot encoded columns, and orders features using the saved
-   feature list.
-4. The saved scaler transforms the input before the K-nearest neighbors
-   classifier predicts class `0` or `1`.
-5. The API returns the prediction and a `Low risk` or `High risk` label.
+The model is developed in the
+[HeartdiseaseFinal.ipynb](./notebook/HeartdiseaseFinal.ipynb) notebook and
+served by the Flask API. The notebook reads a local `heart.csv` file; that
+dataset is not included in this repository. It explores the data, prepares
+features, compares several classifiers, and saves the selected K-nearest
+neighbors (KNN) model and preprocessing artifacts.
 
-This is a binary model output, not a clinical risk score or probability.
+### Training and model selection
+
+The notebook's training workflow is:
+
+1. **Explore and clean the data.** It checks distributions, missing values,
+   duplicates, and feature relationships. Zero values in `Cholesterol` and
+   `RestingBP` are replaced by the mean of the non-zero values for each
+   feature.
+2. **Encode features.** `HeartDisease` is the binary target. Categorical
+   columns are one-hot encoded with `pandas.get_dummies(..., drop_first=True)`,
+   leaving one baseline category per feature. The encoded columns become the
+   model's input feature names and order.
+3. **Create a holdout set.** The notebook uses an 80/20 train/test split,
+   stratifies by the target, and fixes `random_state=42`.
+4. **Scale numeric inputs.** A `StandardScaler` is fitted on the training
+   features and applied to both the training and test features. This is
+   important for distance-based KNN, where features with larger numeric ranges
+   would otherwise dominate distance calculations.
+5. **Compare classifiers.** Logistic Regression, KNN, Gaussian Naive Bayes,
+   Decision Tree, and an RBF-kernel SVM are evaluated using accuracy and
+   F1-score on the holdout set. KNN is the classifier selected for the
+   deployed API.
+
+The notebook converts the encoded feature table to integers before splitting;
+the mean replacements for zero-valued measurements can therefore be truncated
+at that step. The saved artifacts are the serving interface, so changes to
+training preprocessing or feature order must be reflected in the API and its
+expected feature schema.
+
+### Inference in the application
+
+For each prediction, the frontend submits age, sex, chest pain type, resting
+blood pressure, cholesterol, fasting blood sugar, resting ECG, maximum heart
+rate, exercise-induced angina, ST depression (`Oldpeak`), and ST slope as JSON
+to `POST /api/predict`. Flask validates the inputs, creates one row using the
+saved training feature order, and applies the same fitted `StandardScaler`
+before calling the saved KNN classifier.
+
+Categorical fields are expanded to the same `drop_first=True` dummy columns
+used during training. The omitted categories are represented by all-zero
+dummies: Female, asymptomatic chest pain (`ASY`), LVH resting ECG, no exercise
+angina (`N`), and a Down ST slope. The API returns the predicted class (`0` or
+`1`) and its `Low risk` or `High risk` label. It does not return a probability
+or a calibrated clinical risk score.
+
+This is an educational machine-learning estimate, not a clinical assessment.
 
 ## Technology
 
 - **Frontend:** React, TypeScript, Vite, CSS
 - **Backend:** Python, Flask, Gunicorn
 - **Model:** scikit-learn `KNeighborsClassifier` with a saved
-  `StandardScaler`
+  `StandardScaler` (5 neighbors, uniform weights, Euclidean distance)
 - **Hosting:** Render Web Service
 
 ## Run locally
@@ -174,5 +215,7 @@ Returns `{"status":"ok"}` when the web service is running.
 - `heart_columns.pkl` — expected model feature names and order
 
 The scikit-learn version is pinned to `1.6.1` in `requirements.txt` to match
-the version used to save the model artifacts. The repository does not include
-the original training dataset or training code.
+the version used to save the model artifacts. The training workflow is
+documented in the notebook, but the source `heart.csv` dataset is not included.
+The notebook writes its artifacts as `KNN_heart.pkl`, `scaler.pkl`, and
+`columns.pkl`; the Flask API loads the deployed artifacts listed above.
