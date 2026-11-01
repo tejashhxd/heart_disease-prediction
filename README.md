@@ -57,8 +57,27 @@ The notebook's training workflow is:
    would otherwise dominate distance calculations.
 5. **Compare classifiers.** Logistic Regression, KNN, Gaussian Naive Bayes,
    Decision Tree, and an RBF-kernel SVM are evaluated using accuracy and
-   F1-score on the holdout set. KNN is the classifier selected for the
-   deployed API.
+   F1-score on the holdout set.
+
+### Holdout results
+
+The notebook reported the following results on its 20% stratified test split.
+The table is sorted by F1-score, the metric used here to compare the balance
+between precision and recall for the positive class (`HeartDisease = 1`).
+
+| Model | Accuracy | F1-score |
+| --- | ---: | ---: |
+| K-nearest neighbors (KNN) | **0.8859 (88.59%)** | **0.8986 (89.86%)** |
+| Logistic Regression | 0.8750 (87.50%) | 0.8878 (88.78%) |
+| Gaussian Naive Bayes | 0.8696 (86.96%) | 0.8788 (87.88%) |
+| Support Vector Machine (RBF kernel) | 0.8641 (86.41%) | 0.8804 (88.04%) |
+| Decision Tree | 0.7446 (74.46%) | 0.7513 (75.13%) |
+
+KNN achieved the highest accuracy and F1-score in this comparison, so it was
+chosen for the deployed API. These are results from one holdout split, not
+cross-validation or an independent external evaluation; they describe this
+test set and should not be interpreted as a guarantee of real-world
+performance.
 
 The notebook converts the encoded feature table to integers before splitting;
 the mean replacements for zero-valued measurements can therefore be truncated
